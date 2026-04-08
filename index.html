@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ 反应速度挑战</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #start-screen, #end-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 100;
+            transition: opacity 0.5s;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none !important;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: #e94560;
+            text-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            color: #a0a0a0;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        .btn {
+            padding: 15px 50px;
+            font-size: 1.3rem;
+            background: linear-gradient(45deg, #e94560, #ff6b6b);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(233, 69, 96, 0.6);
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            color: #e94560;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .final-score {
+            font-size: 4rem;
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            margin: 20px 0;
+        }
+
+        .target {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #e94560 0%, #ff6b6b 50%, #ff8e8e 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(233, 69, 96, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.3);
+            transition: transform 0.1s;
+            z-index: 50;
+        }
+
+        .target:hover {
+            transform: scale(1.1);
+        }
+
+        .target:active {
+            transform: scale(0.9);
+        }
+
+        .target::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+
+        #hud {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 200;
+            pointer-events: none;
+        }
+
+        .hud-item {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1rem;
+        }
+
+        .hud-value {
+            color: #e94560;
+            font-weight: bold;
+        }
+
+        .click-effect {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 3px solid #e94560;
+            border-radius: 50%;
+            animation: ripple 0.6s ease-out forwards;
+            pointer-events: none;
+            z-index: 40;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+
+        .miss-text {
+            position: absolute;
+            color: #ff6b6b;
+            font-size: 1.5rem;
+            font-weight: bold;
+            animation: floatUp 1s ease-out forwards;
+            pointer-events: none;
+            z-index: 60;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+        }
+
+        .hit-text {
+            position: absolute;
+            color: #4ade80;
+            font-size: 1.5rem;
+            font-weight: bold;
+            animation: floatUp 1s ease-out forwards;
+            pointer-events: none;
+            z-index: 60;
+        }
+
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+        }
+
+        .instructions {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen">
+            <h1>⚡ 反应速度挑战</h1>
+            <p class="subtitle">
+                点击随机出现的红色目标<br>
+                测试你的反应速度有多快！<br>
+                游戏共10轮，看看你能获得多少分！
+            </p>
+            <button class="btn" onclick="startGame()">开始挑战</button>
+            <p class="instructions">💡 提示：目标出现后越快点击，分数越高！</p>
+        </div>
+
+        <div id="end-screen" class="hidden">
+            <h1>🏆 游戏结束！</h1>
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="final-score">0</div>
+                    <div class="stat-label">总得分</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="avg-time">0ms</div>
+                    <div class="stat-label">平均反应时间</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="best-time">0ms</div>
+                    <div class="stat-label">最快反应时间</div>
+                </div>
+            </div>
+            <button class="btn" onclick="startGame()">再玩一次</button>
+        </div>
+
+        <div id="hud" class="hidden">
+            <div class="hud-item">轮次: <span class="hud-value" id="round">0/10</span></div>
+            <div class="hud-item">得分: <span class="hud-value" id="score">0</span></div>
+            <div class="hud-item">时间: <span class="hud-value" id="timer">0ms</span></div>
+        </div>
+    </div>
+
+    <script>
+        let score = 0;
+        let round = 0;
+        let targetAppearTime = 0;
+        let reactionTimes = [];
+        let gameActive = false;
+        let currentTarget = null;
+        let timeoutId = null;
+
+        function startGame() {
+            score = 0;
+            round = 0;
+            reactionTimes = [];
+            gameActive = true;
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('end-screen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+
+            updateHUD();
+            spawnTarget();
+        }
+
+        function updateHUD() {
+            document.getElementById('round').textContent = `${round}/10`;
+            document.getElementById('score').textContent = score;
+        }
+
+        function spawnTarget() {
+            if (!gameActive) return;
+
+            if (currentTarget) {
+                currentTarget.remove();
+            }
+
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            const container = document.getElementById('game-container');
+            const target = document.createElement('div');
+            target.className = 'target';
+
+            const maxX = window.innerWidth - 100;
+            const maxY = window.innerHeight - 100;
+            const x = Math.random() * maxX + 30;
+            const y = Math.random() * maxY + 30;
+
+            target.style.left = x + 'px';
+            target.style.top = y + 'px';
+
+            target.addEventListener('click', handleTargetClick);
+
+            container.appendChild(target);
+            currentTarget = target;
+            targetAppearTime = Date.now();
+
+            // 如果2秒内没点击，自动消失并扣分
+            timeoutId = setTimeout(() => {
+                if (currentTarget === target && gameActive) {
+                    showMissText(x + 30, y);
+                    target.remove();
+                    score = Math.max(0, score - 10);
+                    round++;
+                    updateHUD();
+
+                    if (round >= 10) {
+                        endGame();
+                    } else {
+                        setTimeout(spawnTarget, 500);
+                    }
+                }
+            }, 2000);
+        }
+
+        function handleTargetClick(e) {
+            if (!gameActive) return;
+
+            const reactionTime = Date.now() - targetAppearTime;
+            reactionTimes.push(reactionTime);
+
+            // 根据反应时间计算得分
+            let points = 0;
+            if (reactionTime < 200) {
+                points = 100;
+            } else if (reactionTime < 300) {
+                points = 80;
+            } else if (reactionTime < 500) {
+                points = 60;
+            } else if (reactionTime < 800) {
+                points = 40;
+            } else {
+                points = 20;
+            }
+
+            score += points;
+            round++;
+
+            showHitText(e.clientX, e.clientY, reactionTime);
+            document.getElementById('timer').textContent = reactionTime + 'ms';
+
+            if (currentTarget) {
+                currentTarget.remove();
+                currentTarget = null;
+            }
+
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            updateHUD();
+
+            if (round >= 10) {
+                endGame();
+            } else {
+                setTimeout(spawnTarget, 300);
+            }
+        }
+
+        function showHitText(x, y, time) {
+            const container = document.getElementById('game-container');
+            const text = document.createElement('div');
+            text.className = 'hit-text';
+            text.textContent = `+${time < 200 ? 100 : time < 300 ? 80 : time < 500 ? 60 : time < 800 ? 40 : 20} (${time}ms)`;
+            text.style.left = x + 'px';
+            text.style.top = (y - 20) + 'px';
+            container.appendChild(text);
+
+            setTimeout(() => text.remove(), 1000);
+        }
+
+        function showMissText(x, y) {
+            const container = document.getElementById('game-container');
+            const text = document.createElement('div');
+            text.className = 'miss-text';
+            text.textContent = 'MISS! (-10)';
+            text.style.left = x + 'px';
+            text.style.top = (y - 20) + 'px';
+            container.appendChild(text);
+
+            setTimeout(() => text.remove(), 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+
+            if (currentTarget) {
+                currentTarget.remove();
+                currentTarget = null;
+            }
+
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('end-screen').classList.remove('hidden');
+
+            document.getElementById('final-score').textContent = score;
+
+            if (reactionTimes.length > 0) {
+                const avgTime = Math.round(reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length);
+                const bestTime = Math.min(...reactionTimes);
+                document.getElementById('avg-time').textContent = avgTime + 'ms';
+                document.getElementById('best-time').textContent = bestTime + 'ms';
+            }
+        }
+
+        // 点击空白区域显示提示
+        document.getElementById('game-container').addEventListener('click', function(e) {
+            if (e.target === this && gameActive) {
+                const text = document.createElement('div');
+                text.className = 'miss-text';
+                text.textContent = '点击目标！';
+                text.style.left = e.clientX + 'px';
+                text.style.top = (e.clientY - 20) + 'px';
+                this.appendChild(text);
+                setTimeout(() => text.remove(), 1000);
+            }
+        });
+    </script>
+</body>
+</html>
